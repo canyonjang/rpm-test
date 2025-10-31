@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RPM 미니테스트 (6문항)</title>
+  <style>
+    body { background:#f7f7fb; font-family: system-ui, -apple-system, Segoe UI, Roboto, Noto Sans KR, Arial, sans-serif; }
+    .wrap{ max-width:920px; margin:24px auto; padding:0 12px; }
+    .card{ background:#fff; border:1px solid #e6e6ef; border-radius:12px; padding:18px 20px; box-shadow:0 1px 2px rgba(0,0,0,.02); }
+    h1{ font-size:22px; margin:0 0 8px; }
+    h2{ font-size:18px; margin:12px 0 10px; }
+    p{ line-height:1.6; color:#333; }
+    .matrix{ display:grid; grid-template-columns: repeat(3, 120px); grid-auto-rows:120px; gap:12px; justify-content:center; margin:18px auto; }
+    .cell{ display:flex; align-items:center; justify-content:center; font-size:40px; background:white; border:2px solid #e3e3ee; border-radius:10px; }
+    .opts{ display:grid; grid-template-columns: repeat(3, 1fr); gap:10px; max-width:520px; margin:8px auto 0; }
+    .optbox{ display:flex; align-items:center; justify-content:center; font-size:28px; padding:14px 10px; min-height:76px; background:white; border:2px solid #dcdcee; border-radius:10px; cursor:pointer; }
+    .legend{ text-align:center; color:#666; font-size:14px; margin-top:10px; }
+    .dotgrid{ display:grid; grid-template-columns: repeat(3, 30px); grid-auto-rows:30px; gap:6px; }
+    .dot{ width:26px; height:26px; border-radius:50%; background:#111; }
+    .dot.hollow{ background:transparent; border:3px solid #111; }
+    .sq{ width:36px; height:36px; background:#111; }
+    .sq.hollow{ background:transparent; border:3px solid #111; }
+    .sq.sm{ width:22px; height:22px; }
+    .sq.md{ width:30px; height:30px; }
+    .sq.lg{ width:38px; height:38px; }
+    .btns{ display:flex; gap:10px; justify-content:center; margin-top:16px; flex-wrap:wrap; }
+    .btn{ background:#111; color:#fff; border:none; padding:10px 16px; border-radius:8px; font-size:14px; cursor:pointer; }
+    .muted{ color:#666; font-size:13px; }
+    .error{ background:#ffecec; border:1px solid #ffb3b3; color:#a40000; padding:10px 12px; border-radius:8px; font-size:14px; margin-bottom:12px; }
+    input[type="text"]{ width:260px; padding:10px 12px; border-radius:8px; border:1px solid #d3d3e2; font-size:14px; }
+    textarea{ font-family:monospace; font-size:12px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div id="app" class="card"></div>
+</div>
+<script>
+(function(){
+  // ====== 도형/행렬 유틸 ======
+  const tri = { up:'\u25B2', right:'\u25B6', down:'\u25BC', left:'\u25C0' }; // ▲ ▶ ▼ ◀
+  const sqSolid = '<div class="sq"></div>';
+  const sqHollow = '<div class="sq hollow"></div>';
+
+  function dotGrid(index, hollow=false){
+    let html = '<div class="dotgrid">';
+    for(let i=0;i<9;i++){
+      if(i===index){ html += `<div class="dot ${hollow?'hollow':''}"></div>`; }
+      else { html += '<div></div>'; }
+    }
+    html+='</div>';
+    return html;
+  }
+  function nDots(n){
+    let out = '<div style="display:flex; gap:8px; flex-wrap:wrap; max-width:120px; justify-content:center;">';
+    for(let i=0;i<n;i++) out += '<div class="dot"></div>';
+    out += '</div>'; return out;
+  }
+  function renderMatrix(cells){
+    let html = '<div class="matrix">';
+    for(let i=0;i<9;i++){
+      html += `<div class="cell">${cells[i]??'<span style=\"color:#bbb\">?</span>'}</div>`;
+    }
+    html += '</div>';
+    return html;
+  }
+
+  // ====== 문항 데이터 ======
+  // 보기 번호 매핑:
+  // 1 = 윗줄 왼쪽, 2 = 윗줄 가운데, 3 = 윗줄 오른쪽,
+  // 4 = 아랫줄 왼쪽, 5 = 아랫줄 가운데, 6 = 아랫줄 오른쪽
+  const ITEMS = [
+    { id:'Q1',
+      stem: renderMatrix([
+        nDots(1), nDots(2), nDots(3),
+        nDots(2), nDots(3), nDots(4),
+        nDots(3), nDots(4), null
+      ]),
+      options:[ nDots(2), nDots(3), nDots(4), nDots(5), nDots(6), nDots(7) ],
+      correct: 4 // 정답 인덱스 (1~6 기준)
+    },
+    { id:'Q2',
+      stem: renderMatrix([
+        tri.right, tri.down, tri.left,
+        tri.down, tri.left, tri.up,
+        tri.left, tri.up, null
+      ]),
+      options:[ tri.up, tri.right, tri.down, tri.left, tri.up+tri.right, '◻' ],
+      correct: 2 // ▶
+    },
+    { id:'Q3',
+      stem: renderMatrix([
+        sqSolid, sqHollow, sqSolid,
+        sqHollow, sqSolid, sqHollow,
+        sqSolid, sqHollow, null
+      ]),
+      options:[ sqSolid, sqHollow, '<div class="sq sm"></div>', '<div class="sq md"></div>', '▲', '●' ],
+      correct: 1 // 채워진 사각형 (윗줄 왼쪽)
+    },
+    { id:'Q4',
+      stem: renderMatrix([
+        dotGrid(0), dotGrid(1), dotGrid(2),
+        dotGrid(3), dotGrid(4), dotGrid(5),
+        dotGrid(6), dotGrid(7), null
+      ]),
+      options:[ dotGrid(0), dotGrid(2), dotGrid(6), dotGrid(8), dotGrid(7), dotGrid(4) ],
+      correct: 4 // index 8 위치가 정답
+    },
+    { id:'Q5',
+      stem: renderMatrix([
+        '<div class="sq sm"></div>', '<div class="sq md"></div>', '<div class="sq lg"></div>',
+        '<div class="sq md"></div>', '<div class="sq lg"></div>', '<div class="sq sm"></div>',
+        '<div class="sq lg"></div>', '<div class="sq sm"></div>', null
+      ]),
+      options:[ '<div class="sq sm"></div>', '<div class="sq md"></div>', '<div class="sq lg"></div>', sqHollow, tri.up, '◯' ],
+      correct: 2 // 중간 크기 사각형(윗줄 가운데)
+    },
+    { id:'Q6',
+      stem: renderMatrix([
+        dotGrid(0, true), dotGrid(1, true), dotGrid(2, true),
+        dotGrid(4, true), dotGrid(5, true), dotGrid(3, true),
+        dotGrid(6, true), dotGrid(7, true), null
+      ]),
+      options:[ dotGrid(8, true), dotGrid(0), dotGrid(8), dotGrid(4, true), dotGrid(2, true), dotGrid(7, true) ],
+      correct: 1 // hollow dot 마지막 위치
+    }
+  ];
+
+  // ★★★ 선생님 구글 앱스 스크립트 웹 앱 URL을 여기에 넣으시면 됩니다.
+  // 예: const SCRIPT_URL = "https://script.google.com/macros/s/AKfyc.../exec";
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwXWb3Zzwk1O0LYNv_lJssngBvW02V5y9ZaPaJMTeeGeOltiLZDrom8dh8ClXrVHQkdBg/exec";
+
+  // ====== 상태 ======
+  const app = document.getElementById('app');
+  let PID = '';
+  let idx = 0; // 현재 문제 인덱스 (0~5)
+  const results = []; // {pid,qid,response,correct_index,correct,rt,ts}
+
+  // ====== CSV 내보내기 ======
+  function downloadCSV2(){
+    // 1. UTF-8 BOM 붙여서 한글 PID 안 깨지게
+    // 2. 세미콜론(;) 구분자 → 한국어 윈도우 엑셀에서 자동 분리
+    // 3. 각 셀은 항상 "..." 로 감싸기
+    function esc(v){
+      if(v === undefined || v === null) return '""';
+      const s = String(v).replace(/"/g,'""');
+      return '"' + s + '"';
+    }
+    const DELIM = ';';
+
+    const headerArr = [
+      'pid',           // 참가자 ID
+      'qid',           // Q1 ...
+      'response',      // 참가자 선택 (1~6)
+      'correct_index', // 정답 인덱스 (1~6)
+      'correct',       // 정답 여부 true/false
+      'rt_ms',         // 반응시간(ms)
+      'timestamp'      // ISO8601 시각
+    ];
+    const header = headerArr.map(esc).join(DELIM);
+
+    const rows = results.map(r => [
+      r.pid,
+      r.qid,
+      r.response,
+      r.correct_index,
+      r.correct,
+      Math.round(r.rt),
+      r.ts
+    ].map(esc).join(DELIM));
+
+    const csv = "\ufeff" + [header].concat(rows).join("\n");
+
+    // 항상 화면에 수동 다운로드 블록 먼저 보여주기
+    const url = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8;'}));
+    const dl = document.getElementById('dlarea');
+    if(dl){
+      dl.innerHTML = ''+
+        '<div class="card" style="margin-top:12px">' +
+          '<p><strong>저장 방법 안내</strong><br/>'+
+          '1) 아래 자동저장 버튼을 눌러보세요.<br/>'+
+          '2) 만약 저장이 안 되면, 아래 링크를 우클릭 → "다른 이름으로 저장"<br/>'+
+          '   또는 새로 열린 탭에서 Ctrl+S 로 저장하세요.</p>'+
+          '<p><a href="'+url+'" download="rpm_minitest.csv">수동 다운로드 링크</a></p>'+
+          '<details>'+
+            '<summary class="muted">CSV 미리보기 / 복사</summary>'+
+            '<textarea style="width:100%;height:160px;">'+csv.replace(/</g,'&lt;')+'</textarea>'+
+          '</details>'+
+          '<div class="btns"><button class="btn" id="forceSave">자동저장 시도</button></div>'+
+        '</div>';
+
+      const forceBtn = document.getElementById('forceSave');
+      if(forceBtn){
+        forceBtn.onclick = () => {
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = 'rpm_minitest_'+Date.now()+'.csv';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        };
+      }
+    }
+
+    // 즉시 한 번도 시도 (일부 브라우저는 첫 클릭에서만 허용)
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'rpm_minitest_'+Date.now()+'.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    // sandbox나 팝업 차단 환경에서는 새 탭 열기 대신 수동 영역만 쓰도록 유지 (window.open 생략)
+
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }
+
+  // ====== 렌더 도우미 ======
+  function render(html){
+    app.innerHTML = `<div class="card">${html}</div>`;
+  }
+
+  // ====== 페이지들 ======
+  function pagePID(){
+    render(`
+      <h1>RPM 미니테스트 (6문항)</h1>
+      <p>참가자 ID를 입력해 주세요.</p>
+      <p><input type="text" id="pid" placeholder="Participant ID" /></p>
+      <div class="btns"><button class="btn" id="start">다음</button></div>
+    `);
+    document.getElementById('start').onclick = ()=>{
+      const v = (document.getElementById('pid').value||'').trim();
+      if(!v){ alert('참가자 ID를 입력해 주세요.'); return; }
+      PID = v;
+      pageInstrSingle();
+    };
+  }
+
+  function pageInstrSingle(){
+    render(`
+      <h2>지침</h2>
+      <p>다음 화면들에서 <strong>3×3 행렬</strong>의 오른쪽 아래 빈칸에 들어갈 <strong>가장 알맞은 도형</strong>을 선택하세요.<br/>
+      각 문항에는 <strong>6개의 보기(옵션)</strong>이 주어집니다. 가장 적절한 하나를 선택하세요.</p>
+      <div class="btns"><button class="btn" id="gostart">시작</button></div>
+    `);
+    document.getElementById('gostart').onclick = ()=>{
+      idx = 0;
+      pageTrial();
+    };
+  }
+
+  function pageTrial(){
+    const item = ITEMS[idx];
+    const start = performance.now();
+
+    const html = `
+      <h2>문항 ${idx+1}</h2>
+      <div>${item.stem}</div>
+      <div class="legend">빈칸에 들어갈 보기를 선택하세요.</div>
+      <div class="opts">
+        ${item.options.map((opt,i)=>`<button class=\"optbox\" data-i=\"${i}\">${opt}</button>`).join('')}
+      </div>
+    `;
+    render(html);
+
+    document.querySelectorAll('.optbox').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const rt = performance.now()-start;
+        const respIdx1 = (+btn.getAttribute('data-i')) + 1; // 1..6
+
+        results.push({
+          pid: PID,
+          qid: item.id,
+          response: respIdx1,
+          correct_index: item.correct,
+          correct: (respIdx1 === item.correct),
+          rt: rt,
+          ts: new Date().toISOString()
+        });
+
+        idx++;
+        if(idx < ITEMS.length){
+          pageTrial();
+        } else {
+          pageEnd();
+        }
+      });
+    });
+  }
+
+  function pageEnd(){
+    const n = results.length;
+    const numCorrect = results.filter(r=>r.correct).length;
+    const acc = n? Math.round(numCorrect*100/n) : 0;
+    const meanRT = n? Math.round(results.reduce((s,r)=>s+r.rt,0)/n) : NaN;
+
+    // 결과를 교사용 구글 시트로 전송 (비동기 보고). CORS 차단 환경에서도 그냥 시도만.
+    try {
+      fetch(SCRIPT_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          results: results
+        })
+      }).catch(err => {
+        console.log("전송 실패(무시):", err);
+      });
+    } catch(e) {
+      console.log("전송 예외(무시):", e);
+    }
+
+    const html = `
+      <h2>끝났습니다.</h2>
+      <p>참가자 ID: <strong>${PID}</strong></p>
+      <p>정답률: <strong>${acc}%</strong></p>
+      <p>평균 반응시간: <strong>${isFinite(meanRT)?meanRT+' ms':'N/A'}</strong></p>
+      <div class="btns">
+        <button class="btn" id="csv">CSV 다운로드</button>
+      </div>
+      <div id="dlarea"></div>
+      <p class="muted">다운로드가 자동으로 안 되면, 아래에 뜨는 링크를 우클릭해서 "다른 이름으로 저장"을 하세요.</p>
+      <p class="muted">(참고: 선생님에게는 제출이 전송되었습니다.)</p>
+    `;
+    render(html);
+
+    document.getElementById('csv').onclick = ()=> downloadCSV2();
+  }
+
+  // ====== 간단 사전 점검 (테스트 케이스) ======
+  const selfTests = [
+    {name:'ITEMS 6문항 존재', pass:Array.isArray(ITEMS)&&ITEMS.length===6},
+    {name:'각 문항 옵션 6개', pass:ITEMS.every(it=>Array.isArray(it.options)&&it.options.length===6)},
+    {name:'CSV 줄바꿈 테스트', pass:(()=>{const t=['a','b'].join('\n');return t.indexOf('\n')>0&&t.split('\n').length===2;})()}
+  ];
+  const failed = selfTests.filter(t=>!t.pass);
+  if(failed.length){
+    const msg = `<div class=\"error\"><strong>구성/실행 테스트 실패</strong><br/>${failed.map(t=>`• ${t.name}: 실패`).join('<br/>')}</div>`;
+    app.insertAdjacentHTML('afterbegin', msg);
+  }
+
+  // 시작
+  pagePID();
+})();
+</script>
+</body>
+</html>
